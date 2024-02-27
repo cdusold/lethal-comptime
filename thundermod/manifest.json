@@ -1,0 +1,9 @@
+{
+  "name": "LethalCompTime",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/cdusold/lethal-comptime",
+  "description": "Allows for more controlled quota rollover. For if Quota Rollover starts feeling too easy.",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2100"
+  ]
+}
