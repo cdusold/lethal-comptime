@@ -3,11 +3,6 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using LethalCompTime.Patches;
 using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
-using System.Reflection;
 
 namespace LethalCompTime
 {
@@ -18,15 +13,21 @@ namespace LethalCompTime
 
         private static Plugin Instance;
 
-        private ConfigEntry<int> configRolloverFraction;
-        private ConfigEntry<int> configRolloverThreshold;
-        private ConfigEntry<int> configRolloverPenalty;
+        public static ConfigEntry<int> configRolloverFraction;
+        public static ConfigEntry<int> configRolloverThreshold;
+        public static ConfigEntry<int> configRolloverPenalty;
+
+        public enum ColorOptions
+        {
+            None = 0,
+            Text = 1,
+            Screen = 2,
+            // Custom = 3
+        };
+
+        public static ConfigEntry<ColorOptions> configScreenColoration;
 
         public static ManualLogSource logger;
-
-        public static int rollover_fraction;
-        public static int rollover_threshold;
-        public static int rollover_penalty;
 
         private void Awake()
         {
@@ -54,15 +55,18 @@ namespace LethalCompTime
                 50,
                 "The percentage deduction applied to your rollover amount for each threshold exceeded. This creates a gradual decline in rollover benefits for larger surpluses."
             );
+            configScreenColoration = Config.Bind(
+                "Visual",
+                "RolloverScreenColoration",
+                ColorOptions.Screen,
+                "The type of coloration to use. None, Text (only), Screen (background)."//, Custom."
+            );
             if (configRolloverFraction.Value != 0.0F)
                 Logger.LogInfo($"Rollover percentage set to {configRolloverFraction.Value}");
             if (configRolloverThreshold.Value != 0.0F)
                 Logger.LogInfo($"Rollover max percentage set to {configRolloverThreshold.Value}");
             if (configRolloverPenalty.Value != 0.0F)
                 Logger.LogInfo($"Rollover max percentage set to {configRolloverPenalty.Value}");
-            rollover_fraction = configRolloverFraction.Value;
-            rollover_threshold = configRolloverThreshold.Value;
-            rollover_penalty = configRolloverPenalty.Value;
             harmony.PatchAll(typeof(Plugin));
             harmony.PatchAll(typeof(TimeOfDayPatch));
         }

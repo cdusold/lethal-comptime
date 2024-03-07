@@ -1,10 +1,6 @@
-﻿using BepInEx.Logging;
-using HarmonyLib;
+﻿using HarmonyLib;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
-using UnityEngine.UIElements.UIR;
 namespace LethalCompTime.Patches
 {
     [HarmonyPatch(typeof(TimeOfDay))]
@@ -14,18 +10,18 @@ namespace LethalCompTime.Patches
         {
             int value = quotaFulfilled;
             Plugin.logger.LogInfo($"Calc: {quotaFulfilled}/{profitQuota}");
-            if (quotaFulfilled > Plugin.rollover_threshold * profitQuota / 100)
+            if (quotaFulfilled > Plugin.configRolloverThreshold.Value * profitQuota / 100)
             {
-                int thresholds_passed = 100 * quotaFulfilled / (Plugin.rollover_threshold * profitQuota);
+                int thresholds_passed = 100 * quotaFulfilled / (Plugin.configRolloverThreshold.Value * profitQuota);
                 Plugin.logger.LogInfo($"Calc: #{thresholds_passed}");
-                float highest_fraction = (float)Math.Pow(((float)Plugin.rollover_penalty) / 100, (float)thresholds_passed);
+                float highest_fraction = (float)Math.Pow(((float)Plugin.configRolloverPenalty.Value) / 100, (float)thresholds_passed);
                 Plugin.logger.LogInfo($"Calc: %{highest_fraction}");
-                int remainder = quotaFulfilled - (thresholds_passed * Plugin.rollover_threshold * profitQuota / 100);
+                int remainder = quotaFulfilled - (thresholds_passed * Plugin.configRolloverThreshold.Value * profitQuota / 100);
                 Plugin.logger.LogInfo($"Calc: r{remainder}");
-                value = (int)(highest_fraction*remainder + profitQuota*(1 - highest_fraction)/(1 - ((float)Plugin.rollover_penalty)/100));
+                value = (int)(highest_fraction*remainder + profitQuota*(1 - highest_fraction)/(1 - ((float)Plugin.configRolloverPenalty.Value)/100));
                 Plugin.logger.LogInfo($"Calc: v{value}");
             }
-            return value * Plugin.rollover_fraction / 100;
+            return value * Plugin.configRolloverFraction.Value / 100;
         }
         [HarmonyPatch("SetNewProfitQuota")]
         [HarmonyPrefix]
@@ -49,7 +45,7 @@ namespace LethalCompTime.Patches
         [HarmonyBefore(new string[] { })]
         private static void SetQuotaFulfilledHost(ref int ___quotaFulfilled, ref int ___profitQuota, int __state)
         {
-            if (Plugin.rollover_fraction > 0 && __state > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
+            if (Plugin.configRolloverFraction.Value > 0 && __state > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
             {
                 ___quotaFulfilled = CalculateQuotaRollover(__state, ___profitQuota);
             }
@@ -69,7 +65,7 @@ namespace LethalCompTime.Patches
         [HarmonyPostfix]
         private static void SetNewQuotaFulfiledClient(ref int ___quotaFulfilled, ref int ___profitQuota, int __state)
         {
-            if (___quotaFulfilled == 0 && Plugin.rollover_fraction > 0 && __state > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
+            if (___quotaFulfilled == 0 && Plugin.configRolloverFraction.Value > 0 && __state > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
             {
                 ___quotaFulfilled = CalculateQuotaRollover(__state, ___profitQuota);
                 Plugin.logger.LogInfo($"Client: New quota completion at: {__state}");
@@ -80,35 +76,65 @@ namespace LethalCompTime.Patches
         [HarmonyPostfix]
         public static void SetUpdateProfitQuotaCurrentTime(ref int ___quotaFulfilled, ref int ___profitQuota)
         {
-            if (!StartOfRound.Instance.isChallengeFile)
+            try
             {
-                Color color;
-                Color text_color;
-                if (___quotaFulfilled == 0)
+                if (!StartOfRound.Instance.isChallengeFile)
                 {
-                    color = new Color(0f, 0f, 0f, 1f);
-                    text_color = new Color(0f, 1f, 0f, 1f);
+                    if (Plugin.configScreenColoration.Value == Plugin.ColorOptions.None)
+                        return;
+                    Color text_color;
+                    if (Plugin.configScreenColoration.Value == Plugin.ColorOptions.Text)
+                    {
+                        if (___quotaFulfilled < ___profitQuota)
+                        {
+                            // screen_color = new Color(1f, 0f, 0f, 1f);
+                            text_color = new Color(1f, 0f, 0f, 1f);
+                        }
+                        else if (Plugin.configRolloverFraction.Value <= 0 || Plugin.configRolloverPenalty.Value <= 0 || ___quotaFulfilled < ___profitQuota * (((float)Plugin.configRolloverThreshold.Value) / 100 + 1))
+                        {
+                            // screen_color = new Color(0f, 1f, 0f, 1f);
+                            text_color = new Color(0f, 1f, 0f, 1f);
+                        }
+                        else
+                        {
+                            // screen_color = new Color(1f, 1f, 0f, 1f);
+                            text_color = new Color(1f, 1f, 0f, 1f);
+                        }
+                    }
+                    else //if (Plugin.configScreenColoration.Value == Plugin.ColorOptions.Screen)
+                    {
+                        Color screen_color;
+                        if (___quotaFulfilled == 0)
+                        {
+                            screen_color = new Color(0f, 0f, 0f, 1f);
+                            text_color = new Color(0f, 1f, 0f, 1f);
+                        }
+                        else if (___quotaFulfilled < ___profitQuota)
+                        {
+                            screen_color = new Color(1f, 0f, 0f, 1f);
+                            text_color = new Color(0f, 0f, 0f, 1f);
+                        }
+                        else if (Plugin.configRolloverFraction.Value <= 0 || Plugin.configRolloverPenalty.Value <= 0 || ___quotaFulfilled < ___profitQuota * (((float)Plugin.configRolloverThreshold.Value) / 100 + 1))
+                        {
+                            screen_color = new Color(0f, 1f, 0f, 1f);
+                            text_color = new Color(0f, 0f, 0f, 1f);
+                        }
+                        else
+                        {
+                            screen_color = new Color(1f, 1f, 0f, 1f);
+                            text_color = new Color(0f, 0f, 0f, 1f);
+                        }
+                        StartOfRound.Instance.deadlineMonitorBGImage.color = screen_color;
+                        StartOfRound.Instance.profitQuotaMonitorBGImage.color = screen_color;
+                    }
+                    StartOfRound.Instance.profitQuotaMonitorText.color = text_color;
+                    StartOfRound.Instance.deadlineMonitorText.color = text_color;
                 }
-                else if (___quotaFulfilled < ___profitQuota)
-                {
-                    color = new Color(1f, 0f, 0f, 1f);
-                    text_color = new Color(0f, 1f, 0f, 1f);
-                }
-                else if (Plugin.rollover_fraction <= 0 || Plugin.rollover_penalty <= 0 || ___quotaFulfilled < ___profitQuota * (((float)Plugin.rollover_threshold) / 100 + 1))
-                {
-                    color = new Color(0f, 1f, 0f, 1f);
-                    text_color = new Color(0f, 0f, 0f, 1f);
-                }
-                else
-                {
-                    color = new Color(1f, 1f, 0f, 1f);
-                    text_color = new Color(0f, 0f, 0f, 1f);
-                }
-                StartOfRound.Instance.deadlineMonitorBGImage.color = color;
-                StartOfRound.Instance.profitQuotaMonitorBGImage.color = color;
-                StartOfRound.Instance.profitQuotaMonitorText.color = text_color;
-                StartOfRound.Instance.deadlineMonitorText.color = text_color;
-                
+            }
+            catch (Exception e)
+            {
+                Plugin.logger.LogError("Error in monitor update");
+                Plugin.logger.LogError(e.Message);
             }
         }
     }
