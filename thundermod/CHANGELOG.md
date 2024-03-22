@@ -1,3 +1,8 @@
+# 1.0.2
+
+- Fixing divide by zero problems.
+- Making error message more descriptive.
+
 # 1.0.1
 
 - Adding some checks for visuals, which can clash with custom monitor mods.

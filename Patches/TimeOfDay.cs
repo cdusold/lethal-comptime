@@ -10,7 +10,7 @@ namespace LethalCompTime.Patches
         {
             int value = quotaFulfilled;
             Plugin.logger.LogInfo($"Calc: {quotaFulfilled}/{profitQuota}");
-            if (quotaFulfilled > Plugin.configRolloverThreshold.Value * profitQuota / 100)
+            if (Plugin.configRolloverThreshold.Value > 0 && Plugin.configRolloverPenalty.Value != 100 && quotaFulfilled > Plugin.configRolloverThreshold.Value * profitQuota / 100)
             {
                 int thresholds_passed = 100 * quotaFulfilled / (Plugin.configRolloverThreshold.Value * profitQuota);
                 Plugin.logger.LogInfo($"Calc: #{thresholds_passed}");
@@ -134,7 +134,7 @@ namespace LethalCompTime.Patches
             catch (Exception e)
             {
                 Plugin.logger.LogError("Error in monitor update");
-                Plugin.logger.LogError(e.Message);
+                Plugin.logger.LogError(e.ToString());
             }
         }
     }
