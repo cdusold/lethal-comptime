@@ -1,3 +1,10 @@
+# 1.0.3
+
+- Coloration defaults to off.
+- Rollover subtracts from overtime (overridable in configs).
+- Coloration fully configurable.
+- Logarithmic penalty is available as a replacement for asymptotic.
+
 # 1.0.2
 
 - Fixing divide by zero problems.
