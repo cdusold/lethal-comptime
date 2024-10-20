@@ -1,3 +1,7 @@
+# 1.1.0
+
+- Adding LobbyCompatibility details.
+
 # 1.0.3
 
 - Coloration defaults to off.

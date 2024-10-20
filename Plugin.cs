@@ -3,10 +3,14 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using LethalCompTime.Patches;
 using HarmonyLib;
+using LobbyCompatibility.Enums;
+using LobbyCompatibility.Attributes;
+using static BepInEx.BepInDependency;
 
 namespace LethalCompTime
 {
     [BepInPlugin("com.github.cdusold.LethalCompTime", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [LobbyCompatibility(CompatibilityLevel.ClientOnly, VersionStrictness.None)]
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony harmony = new Harmony("cdusold.LethalCompTime");
