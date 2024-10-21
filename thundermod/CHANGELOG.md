@@ -1,3 +1,7 @@
+# 1.1.1
+
+- Removing LobbyCompatibility as I can't lazy load it like I can LethalConfig
+
 # 1.1.0
 
 - Adding LethalConfigManager with presets:
