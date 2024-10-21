@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using LethalCompTime.Configs;
 using System;
 using UnityEngine;
 namespace LethalCompTime.Patches
@@ -10,11 +11,11 @@ namespace LethalCompTime.Patches
         {
             int value = quotaFulfilled;
             Plugin.logger.LogInfo($"Calc: {quotaFulfilled}/{profitQuota}");
-            int threshold = Plugin.configRolloverThreshold.Value;
-            int penalty = Plugin.configRolloverPenalty.Value;
-            int fraction = Plugin.configRolloverFraction.Value;
+            int threshold = ConfigManager.RolloverThreshold.Value;
+            int penalty = ConfigManager.RolloverPenalty.Value;
+            int fraction = ConfigManager.RolloverFraction.Value;
             Plugin.logger.LogInfo($"Thresh: {threshold} penalty: {penalty} fraction: {fraction}");
-            bool log = Plugin.configPenaltyType.Value == Plugin.PenaltyType.Logarithmic;
+            bool log = ConfigManager.PenaltyUsed.Value == ConfigManager.PenaltyType.Logarithmic;
             if (log)
             {
                 value *= fraction;
@@ -77,7 +78,7 @@ namespace LethalCompTime.Patches
                 Plugin.currentOverfulfillment = ___quotaFulfilled - ___profitQuota;
                 Plugin.logger.LogInfo($"Host: Required {___profitQuota}");
                 Plugin.logger.LogInfo($"Host: Got {___quotaFulfilled}");
-                if (Plugin.configOvertimeOverride.Value)
+                if (ConfigManager.OvertimeOverride.Value)
                 {
                     if (TimeOfDay.Instance.IsServer)
                     {
@@ -105,7 +106,7 @@ namespace LethalCompTime.Patches
         [HarmonyBefore(new string[] { })]
         private static void SetQuotaFulfilledHost(ref int ___quotaFulfilled, ref int ___profitQuota)
         {
-            if (Plugin.configRolloverFraction.Value > 0 && Plugin.currentOverfulfillment > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
+            if (ConfigManager.RolloverFraction.Value > 0 && Plugin.currentOverfulfillment > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
             {
                 ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota);
             }
@@ -128,7 +129,7 @@ namespace LethalCompTime.Patches
         [HarmonyPostfix]
         private static void SetNewQuotaFulfiledClient(ref int ___quotaFulfilled, ref int ___profitQuota)
         {
-            if (___quotaFulfilled == 0 && Plugin.configRolloverFraction.Value > 0 && Plugin.currentOverfulfillment > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
+            if (___quotaFulfilled == 0 && ConfigManager.RolloverFraction.Value > 0 && Plugin.currentOverfulfillment > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
             {
                 ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota);
                 Plugin.logger.LogInfo($"Client: New quota completion at: {Plugin.currentOverfulfillment}");
@@ -144,28 +145,28 @@ namespace LethalCompTime.Patches
             {
                 if (!StartOfRound.Instance.isChallengeFile)
                 {
-                    if (Plugin.configScreenColoration.Value == Plugin.ColorOptions.None)
+                    if (ConfigManager.ScreenColoration.Value == ConfigManager.ColorOptions.None)
                         return;
                     Color text_color;
-                    if (Plugin.configScreenColoration.Value == Plugin.ColorOptions.Text)
+                    if (ConfigManager.ScreenColoration.Value == ConfigManager.ColorOptions.Text)
                     {
                         if (___quotaFulfilled < ___profitQuota)
                         {
                             // screen_color = new Color(1f, 0f, 0f, 1f);
-                            ColorUtility.TryParseHtmlString(Plugin.configColorUnderFulfilled.Value, out text_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.ColorUnderFulfilled.Value, out text_color);
                         }
-                        else if (Plugin.configRolloverFraction.Value <= 0 || Plugin.configRolloverPenalty.Value <= 0 || ___quotaFulfilled < ___profitQuota * (((float)Plugin.configRolloverThreshold.Value) / 100 + 1))
+                        else if (ConfigManager.RolloverFraction.Value <= 0 || ConfigManager.RolloverPenalty.Value <= 0 || ___quotaFulfilled < ___profitQuota * (((float)ConfigManager.RolloverThreshold.Value) / 100 + 1))
                         {
                             // screen_color = new Color(0f, 1f, 0f, 1f);
-                            ColorUtility.TryParseHtmlString(Plugin.configColorFulfilled.Value, out text_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.ColorFulfilled.Value, out text_color);
                         }
                         else
                         {
                             // screen_color = new Color(1f, 1f, 0f, 1f);
-                            ColorUtility.TryParseHtmlString(Plugin.configColorOverFulfilled.Value, out text_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.ColorOverFulfilled.Value, out text_color);
                         }
                     }
-                    else //if (Plugin.configScreenColoration.Value == Plugin.ColorOptions.Screen)
+                    else //if (ConfigManager.ScreenColoration.Value == Plugin.ColorOptions.Screen)
                     {
                         Color screen_color;
                         if (___quotaFulfilled == 0)
@@ -175,18 +176,18 @@ namespace LethalCompTime.Patches
                         }
                         else if (___quotaFulfilled < ___profitQuota)
                         {
-                            ColorUtility.TryParseHtmlString(Plugin.configColorUnderFulfilled.Value, out screen_color);
-                            ColorUtility.TryParseHtmlString(Plugin.configTextColorOverrideUnderFulfilled.Value, out text_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.ColorUnderFulfilled.Value, out screen_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.TextColorOverrideUnderFulfilled.Value, out text_color);
                         }
-                        else if (Plugin.configRolloverFraction.Value <= 0 || Plugin.configRolloverPenalty.Value <= 0 || ___quotaFulfilled < ___profitQuota * (((float)Plugin.configRolloverThreshold.Value) / 100 + 1))
+                        else if (ConfigManager.RolloverFraction.Value <= 0 || ConfigManager.RolloverPenalty.Value <= 0 || ___quotaFulfilled < ___profitQuota * (((float)ConfigManager.RolloverThreshold.Value) / 100 + 1))
                         {
-                            ColorUtility.TryParseHtmlString(Plugin.configColorFulfilled.Value, out screen_color);
-                            ColorUtility.TryParseHtmlString(Plugin.configTextColorOverrideFulfilled.Value, out text_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.ColorFulfilled.Value, out screen_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.TextColorOverrideFulfilled.Value, out text_color);
                         }
                         else
                         {
-                            ColorUtility.TryParseHtmlString(Plugin.configColorOverFulfilled.Value, out screen_color);
-                            ColorUtility.TryParseHtmlString(Plugin.configTextColorOverrideOverFulfilled.Value, out text_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.ColorOverFulfilled.Value, out screen_color);
+                            ColorUtility.TryParseHtmlString(ConfigManager.TextColorOverrideOverFulfilled.Value, out text_color);
                         }
                         StartOfRound.Instance.deadlineMonitorBGImage.color = screen_color;
                         StartOfRound.Instance.profitQuotaMonitorBGImage.color = screen_color;

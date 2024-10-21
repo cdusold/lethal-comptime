@@ -1,5 +1,13 @@
 # 1.1.0
 
+- Adding LethalConfigManager with presets:
+    - ClassicQR
+    - QRBalanced
+    - ScaledDown
+    - HardCapped
+    - Recommended
+    - CompanyIssue
+    - Vanilla
 - Adding LobbyCompatibility details.
 
 # 1.0.3
