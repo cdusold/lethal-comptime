@@ -1,5 +1,9 @@
 using BepInEx;
 using LethalConfig.ConfigItems;
+using LethalCompTime.Patches;
+using BepInEx.Configuration;
+using LethalConfig.ConfigItems.Options;
+using LobbyCompatibility.Configuration;
 
 namespace LethalCompTime.Configs
 {
@@ -7,16 +11,18 @@ namespace LethalCompTime.Configs
     internal class LethalConfigManager
     {
         public static LethalConfigManager Instance { get; private set; }
+        public static ConfigEntry<int> ExampleQuota { get; private set; }
+        public static ConfigEntry<int> ExampleRollover { get; private set; }
 
-        public static void Init()
+        public static void Init(ConfigFile config)
         {
             if (Instance == null)
             {
-                Instance = new LethalConfigManager();
+                Instance = new LethalConfigManager(config);
             }
         }
 
-        private LethalConfigManager()
+        private LethalConfigManager(ConfigFile config)
         {
             LethalConfig.LethalConfigManager.SetModDescription("Allows for more controlled quota rollover. For if Quota Rollover starts feeling too easy.");
 
@@ -123,6 +129,43 @@ namespace LethalCompTime.Configs
             LethalConfig.LethalConfigManager.AddConfigItem(new IntSliderConfigItem(ConfigManager.RolloverPenalty, false));
             LethalConfig.LethalConfigManager.AddConfigItem(new EnumDropDownConfigItem<ConfigManager.PenaltyType>(ConfigManager.PenaltyUsed, false));
             LethalConfig.LethalConfigManager.AddConfigItem(new BoolCheckBoxConfigItem(ConfigManager.OvertimeOverride, false));
+            ExampleQuota = config.Bind("General", "ExampleQuota", 200, "Enter an example amount of quota to rollover (assuming a required 100 quota).");
+            var ExampleQuotaItem = new IntInputFieldConfigItem(ExampleQuota, false);
+            LethalConfig.LethalConfigManager.AddConfigItem(ExampleQuotaItem);
+
+            ExampleRollover = config.Bind("General", "ExampleRollover", TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100), "After 100 quota is collected, this much will be left (assuming the next quota is 100 for simplicity).");
+            var ExampleRolloverItem = new IntInputFieldConfigItem(ExampleRollover, new IntInputFieldOptions
+            {
+                RequiresRestart = false,
+                CanModifyCallback = () => CanModifyResult.False("Press Apply to update this value."),
+            });
+
+            LethalConfig.LethalConfigManager.AddConfigItem(ExampleRolloverItem);
+            ExampleQuota.SettingChanged += (sender, args) =>
+            {
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRolloverItem.ApplyChanges();
+            };
+            ConfigManager.RolloverFraction.SettingChanged += (sender, args) =>
+            {
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRolloverItem.ApplyChanges();
+            };
+            ConfigManager.RolloverThreshold.SettingChanged += (sender, args) =>
+            {
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRolloverItem.ApplyChanges();
+            };
+            ConfigManager.RolloverPenalty.SettingChanged += (sender, args) =>
+            {
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRolloverItem.ApplyChanges();
+            };
+            ConfigManager.PenaltyUsed.SettingChanged += (sender, args) =>
+            {
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRolloverItem.ApplyChanges();
+            };
             LethalConfig.LethalConfigManager.AddConfigItem(new EnumDropDownConfigItem<ConfigManager.ColorOptions>(ConfigManager.ScreenColoration, false));
             LethalConfig.LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(ConfigManager.ColorUnderFulfilled, false));
             LethalConfig.LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(ConfigManager.ColorFulfilled, false));

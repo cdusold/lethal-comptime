@@ -13,7 +13,9 @@ Great- great asset to the company.
 - Adds a percentage penalty for rollover to encourage hoarding a little
 - Attempts to balance rollover making the game too easy and front loaded
 - Completely client sideable cosmetic effects, and completely host sideable rollover effects
+- LobbyCompatibility integration
 - LethalConfig integration includes seven prebuilt settings available for quick access.
+- LethalConfig example fields allow to test settings.
 
 ### Usage
 There are five main functional settings available:

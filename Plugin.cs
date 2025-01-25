@@ -3,11 +3,13 @@ using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using LethalCompTime.Patches;
 using LethalCompTime.Configs;
+using LethalCompTime.Compat;
 using HarmonyLib;
 
 namespace LethalCompTime
 {
     [BepInPlugin("com.github.cdusold.LethalCompTime", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [BepInDependency("BMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony harmony = new Harmony("cdusold.LethalCompTime");
@@ -31,7 +33,11 @@ namespace LethalCompTime
 
             if (Chainloader.PluginInfos.ContainsKey("ainavt.lc.lethalconfig"))
             {
-                LethalConfigManager.Init();
+                LethalConfigManager.Init(Config);
+            }
+            if (Chainloader.PluginInfos.ContainsKey("BMX.LobbyCompatibility"))
+            {
+                LobbyCompatibilityManager.Init();
             }
             if (ConfigManager.RolloverFraction.Value != 0.0F)
                 Logger.LogInfo($"Rollover percentage set to {ConfigManager.RolloverFraction.Value}");

@@ -1,3 +1,8 @@
+# 1.1.2
+
+- Found documentation on soft compatibilities and added back in LobbyCompatibility stuff
+- Added in example entry to test settings before starting the game.
+
 # 1.1.1
 
 - Removing LobbyCompatibility as I can't lazy load it like I can LethalConfig
