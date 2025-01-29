@@ -1,3 +1,8 @@
+# 1.1.3
+
+- Bugfix for quota rollovers to be more accurate (and thus predictible)
+- Updated code to allow luck values to be used still!
+
 # 1.1.2
 
 - Found documentation on soft compatibilities and added back in LobbyCompatibility stuff

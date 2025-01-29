@@ -133,7 +133,7 @@ namespace LethalCompTime.Configs
             var ExampleQuotaItem = new IntInputFieldConfigItem(ExampleQuota, false);
             LethalConfig.LethalConfigManager.AddConfigItem(ExampleQuotaItem);
 
-            ExampleRollover = config.Bind("General", "ExampleRollover", TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100), "After 100 quota is collected, this much will be left (assuming the next quota is 100 for simplicity).");
+            ExampleRollover = config.Bind("General", "ExampleRollover", TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100), "After 100 quota is collected, this much will be rolled over (assuming the next quota is 100 for simplicity).");
             var ExampleRolloverItem = new IntInputFieldConfigItem(ExampleRollover, new IntInputFieldOptions
             {
                 RequiresRestart = false,

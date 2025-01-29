@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using LethalCompTime.Configs;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 namespace LethalCompTime.Patches
 {
@@ -9,67 +10,80 @@ namespace LethalCompTime.Patches
     {
         public static int CalculateQuotaRollover(int quotaFulfilled, int profitQuota)
         {
-            int value = quotaFulfilled;
-            Plugin.logger.LogInfo($"Calc: {quotaFulfilled}/{profitQuota}");
-            int threshold = ConfigManager.RolloverThreshold.Value;
-            int penalty = ConfigManager.RolloverPenalty.Value;
-            int fraction = ConfigManager.RolloverFraction.Value;
-            Plugin.logger.LogInfo($"Thresh: {threshold} penalty: {penalty} fraction: {fraction}");
+            bool debug = false;
+            double value = quotaFulfilled;
+            if (debug)
+                Plugin.logger.LogInfo($"Calc: {quotaFulfilled}/{profitQuota}");
+            double threshold = ConfigManager.RolloverThreshold.Value / 100.0;
+            double penalty = ConfigManager.RolloverPenalty.Value / 100.0;
+            double fraction = ConfigManager.RolloverFraction.Value / 100.0;
+            if (debug)
+                Plugin.logger.LogInfo($"Thresh: {threshold} penalty: {penalty} fraction: {fraction}");
             bool log = ConfigManager.PenaltyUsed.Value == ConfigManager.PenaltyType.Logarithmic;
             if (log)
             {
                 value *= fraction;
-                value /= 100;
             }
-            if (threshold > 0 && penalty != 100 && value > threshold * profitQuota / 100)
+            double quota_threshold = threshold * profitQuota;
+            if (quota_threshold > 0 && penalty != 1 && value > quota_threshold)
             {
                 int thresholds_passed;
                 if (log)
                 {
-                    double temp3 = 100.0 / penalty;
-                    double temp2 = threshold * profitQuota / 100.0;
-                    double temp = temp2 - value * (1.0 - temp3);
-                    Plugin.logger.LogInfo($"Math.Log({temp}/{temp2}, {temp3})");
-                    thresholds_passed = (int)Math.Log((temp) / (temp2), temp3);
+                    double invPenalty = 1.0 / penalty;
+                    double temp = quota_threshold - value * (1.0 - invPenalty);
+                    if (debug)
+                        Plugin.logger.LogInfo($"Math.Log({temp}/{quota_threshold}, {invPenalty})");
+                    thresholds_passed = (int)Math.Floor(Math.Log(temp / quota_threshold, invPenalty));
                 }
                 else
                 {
-                    thresholds_passed = 100 * value / (threshold * profitQuota);
+                    thresholds_passed = (int)Math.Floor(value / quota_threshold);
                 }
-                Plugin.logger.LogInfo($"Calc: #{thresholds_passed}");
-                float highest_fraction = (float)Math.Pow(((float)penalty) / 100, (float)thresholds_passed);
-                Plugin.logger.LogInfo($"Calc: %{highest_fraction}");
-                int remainder;
+                if (debug)
+                    Plugin.logger.LogInfo($"Calc: #{thresholds_passed}");
+                double highest_fraction = Math.Pow(penalty, thresholds_passed);
+                if (debug)
+                {
+                    Plugin.logger.LogInfo($"Calc: %{highest_fraction}");
+                }
+                double remainder;
                 if (log)
                 {
-                    remainder = value - (int)(threshold * profitQuota * (1 - (1 / highest_fraction)) / (1 - (100.0 / penalty)))/100;
+                    remainder = value - (quota_threshold * (1 - (1 / highest_fraction)) / (1 - (1 / penalty)));
+                    if (debug)
+                        Plugin.logger.LogInfo($"Calc: {quota_threshold * (1 - (1 / highest_fraction)) / (1 - (1 / penalty))} < {value} < {quota_threshold * (1 - (1 / (highest_fraction * penalty))) / (1 - 1 / penalty)}");
                 }
                 else
                 {
-                    remainder = value - (thresholds_passed * threshold * profitQuota / 100);
+                    remainder = value - (thresholds_passed * quota_threshold);
                 }
-                Plugin.logger.LogInfo($"Calc: r{remainder}");
+                if (debug)
+                    Plugin.logger.LogInfo($"Calc: r{remainder}");
+                value = highest_fraction * remainder;
                 if (log)
                 {
-                    value = (int)(highest_fraction * remainder + threshold * profitQuota * thresholds_passed / 100);
+                    value += quota_threshold * thresholds_passed;
                 }
                 else
                 {
-                    value = (int)(highest_fraction * remainder + profitQuota * (1 - highest_fraction) / (1 - ((float)penalty) / 100));
+                    value += quota_threshold * (1 - highest_fraction) / (1 - penalty);
                 }
-                Plugin.logger.LogInfo($"Calc: v{value}");
             }
-            if (log)
+            if (!log)
             {
-                return value;
+                value *= fraction;
             }
-            return value * fraction / 100;
+            if (debug)
+                Plugin.logger.LogInfo($"Calc: v{value}");
+            return (int)Math.Floor(value);
         }
         [HarmonyPatch("SetNewProfitQuota")]
         [HarmonyPrefix]
         [HarmonyAfter([])]
         private static bool GetQuotaFulfilledHost(ref int ___quotaFulfilled, ref int ___profitQuota, ref int ___timesFulfilledQuota,
-                                                  ref QuotaSettings ___quotaVariables, ref float ___timeUntilDeadline, ref float ___totalTime, ref int ___daysUntilDeadline)
+                                                  ref QuotaSettings ___quotaVariables, ref float ___timeUntilDeadline, ref float ___totalTime,
+                                                  ref int ___daysUntilDeadline, ref List<int> __furniturePlacedAtQuotaStart)
         {
             Plugin.logger.LogInfo($"days: {TimeOfDay.Instance.daysUntilDeadline} time: {TimeOfDay.Instance.timeUntilDeadline} ID: {StartOfRound.Instance.currentLevelID}");
             Plugin.currentOverfulfillment = 0;
@@ -82,16 +96,31 @@ namespace LethalCompTime.Patches
                 {
                     if (TimeOfDay.Instance.IsServer)
                     {
-                        // DIRECTLY COPIED FROM DISASSEMBLY OF V55. WITH APPROPRIATE MODIFICATION. WILL NEED MANUAL UPDATES.
+                        // DIRECTLY COPIED FROM DISASSEMBLY OF V69. WITH APPROPRIATE MODIFICATION. WILL NEED MANUAL UPDATES.
                         ___timesFulfilledQuota++;
                         int num = ___quotaFulfilled - ___profitQuota;
                         float num2 = Mathf.Clamp(1f + (float)___timesFulfilledQuota * ((float)___timesFulfilledQuota / ___quotaVariables.increaseSteepness), 0f, 10000f);
-                        num2 = ___quotaVariables.baseIncrease * num2 * (___quotaVariables.randomizerCurve.Evaluate(UnityEngine.Random.Range(0f, 1f)) * ___quotaVariables.randomizerMultiplier + 1f);
+                        TimeOfDay.Instance.CalculateLuckValue();
+                        float num3 = UnityEngine.Random.Range(0f, 1f);
+                        Debug.Log($"Randomizer amount before: {num3}");
+                        num3 *= Mathf.Abs(TimeOfDay.Instance.luckValue - 1f);
+                        Debug.Log($"Randomizer amount after: {num3}");
+                        num2 = ___quotaVariables.baseIncrease * num2 * (___quotaVariables.randomizerCurve.Evaluate(num3) * ___quotaVariables.randomizerMultiplier + 1f);
+                        Debug.Log($"Amount to increase quota:{num2}");
                         ___profitQuota = (int)Mathf.Clamp((float)___profitQuota + num2, 0f, 1E+09f);
                         ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota); // THIS IS MODIFIED.
                         num -= Math.Min(___quotaFulfilled, num); // THIS IS ADDED.
                         ___timeUntilDeadline = ___totalTime * 4f;
                         int overtimeBonus = num / 5 + 15 * ___daysUntilDeadline;
+                        __furniturePlacedAtQuotaStart.Clear();
+                        AutoParentToShip[] array = UnityEngine.Object.FindObjectsByType<AutoParentToShip>(FindObjectsSortMode.None);
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            if (array[i].unlockableID != -1)
+                            {
+                                __furniturePlacedAtQuotaStart.Add(array[i].unlockableID);
+                            }
+                        }
                         TimeOfDay.Instance.SyncNewProfitQuotaClientRpc(___profitQuota, overtimeBonus, ___timesFulfilledQuota);
                     }
                     return false; // Prevents original function call.
