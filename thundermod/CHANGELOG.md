@@ -1,7 +1,11 @@
-# 1.1.3
+# 1.1.4
 
 - Bugfix for quota rollovers to be more accurate (and thus predictible)
 - Updated code to allow luck values to be used still!
+
+# 1.1.3
+
+- The wrong DLL was uploaded...
 
 # 1.1.2
 
