@@ -83,7 +83,7 @@ namespace LethalCompTime.Patches
         [HarmonyAfter([])]
         private static bool GetQuotaFulfilledHost(ref int ___quotaFulfilled, ref int ___profitQuota, ref int ___timesFulfilledQuota,
                                                   ref QuotaSettings ___quotaVariables, ref float ___timeUntilDeadline, ref float ___totalTime,
-                                                  ref int ___daysUntilDeadline, ref List<int> __furniturePlacedAtQuotaStart)
+                                                  ref int ___daysUntilDeadline)
         {
             Plugin.logger.LogInfo($"days: {TimeOfDay.Instance.daysUntilDeadline} time: {TimeOfDay.Instance.timeUntilDeadline} ID: {StartOfRound.Instance.currentLevelID}");
             Plugin.currentOverfulfillment = 0;
@@ -92,42 +92,40 @@ namespace LethalCompTime.Patches
                 Plugin.currentOverfulfillment = ___quotaFulfilled - ___profitQuota;
                 Plugin.logger.LogInfo($"Host: Required {___profitQuota}");
                 Plugin.logger.LogInfo($"Host: Got {___quotaFulfilled}");
-                if (ConfigManager.OvertimeOverride.Value)
+                if (TimeOfDay.Instance.IsServer)
                 {
-                    if (TimeOfDay.Instance.IsServer)
-                    {
-                        // DIRECTLY COPIED FROM DISASSEMBLY OF V69. WITH APPROPRIATE MODIFICATION. WILL NEED MANUAL UPDATES.
-                        ___timesFulfilledQuota++;
-                        int num = ___quotaFulfilled - ___profitQuota;
-                        float num2 = Mathf.Clamp(1f + (float)___timesFulfilledQuota * ((float)___timesFulfilledQuota / ___quotaVariables.increaseSteepness), 0f, 10000f);
-                        TimeOfDay.Instance.CalculateLuckValue();
-                        float num3 = UnityEngine.Random.Range(0f, 1f);
-                        Debug.Log($"Randomizer amount before: {num3}");
-                        num3 *= Mathf.Abs(TimeOfDay.Instance.luckValue - 1f);
-                        Debug.Log($"Randomizer amount after: {num3}");
-                        num2 = ___quotaVariables.baseIncrease * num2 * (___quotaVariables.randomizerCurve.Evaluate(num3) * ___quotaVariables.randomizerMultiplier + 1f);
-                        Debug.Log($"Amount to increase quota:{num2}");
-                        ___profitQuota = (int)Mathf.Clamp((float)___profitQuota + num2, 0f, 1E+09f);
-                        ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota); // THIS IS MODIFIED.
+                    // DIRECTLY COPIED FROM DISASSEMBLY OF V69. WITH APPROPRIATE MODIFICATION. WILL NEED MANUAL UPDATES.
+                    ___timesFulfilledQuota++;
+                    int num = ___quotaFulfilled - ___profitQuota;
+                    float num2 = Mathf.Clamp(1f + (float)___timesFulfilledQuota * ((float)___timesFulfilledQuota / ___quotaVariables.increaseSteepness), 0f, 10000f);
+                    TimeOfDay.Instance.CalculateLuckValue();
+                    float num3 = UnityEngine.Random.Range(0f, 1f);
+                    Debug.Log($"Randomizer amount before: {num3}");
+                    num3 *= Mathf.Abs(TimeOfDay.Instance.luckValue - 1f);
+                    Debug.Log($"Randomizer amount after: {num3}");
+                    num2 = ___quotaVariables.baseIncrease * num2 * (___quotaVariables.randomizerCurve.Evaluate(num3) * ___quotaVariables.randomizerMultiplier + 1f);
+                    Debug.Log($"Amount to increase quota:{num2}");
+                    ___profitQuota = (int)Mathf.Clamp((float)___profitQuota + num2, 0f, 1E+09f);
+                    ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota); // THIS IS MODIFIED.
+                    if (ConfigManager.OvertimeOverride.Value)    // THIS IS ADDED.
                         num -= Math.Min(___quotaFulfilled, num); // THIS IS ADDED.
-                        ___timeUntilDeadline = ___totalTime * 4f;
-                        int overtimeBonus = num / 5 + 15 * ___daysUntilDeadline;
-                        __furniturePlacedAtQuotaStart.Clear();
-                        AutoParentToShip[] array = UnityEngine.Object.FindObjectsByType<AutoParentToShip>(FindObjectsSortMode.None);
-                        for (int i = 0; i < array.Length; i++)
+                    ___timeUntilDeadline = ___totalTime * 4f;
+                    int overtimeBonus = num / 5 + 15 * ___daysUntilDeadline;
+                    TimeOfDay.Instance.furniturePlacedAtQuotaStart.Clear();
+                    AutoParentToShip[] array = UnityEngine.Object.FindObjectsByType<AutoParentToShip>(FindObjectsSortMode.None);
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        if (array[i].unlockableID != -1)
                         {
-                            if (array[i].unlockableID != -1)
-                            {
-                                __furniturePlacedAtQuotaStart.Add(array[i].unlockableID);
-                            }
+                            TimeOfDay.Instance.furniturePlacedAtQuotaStart.Add(array[i].unlockableID);
                         }
-                        TimeOfDay.Instance.SyncNewProfitQuotaClientRpc(___profitQuota, overtimeBonus, ___timesFulfilledQuota);
                     }
+                    TimeOfDay.Instance.SyncNewProfitQuotaClientRpc(___profitQuota, overtimeBonus, ___timesFulfilledQuota);
                     return false; // Prevents original function call.
                 }
-                return true;
+                return true; // I dunno. If someone else is hooking in, let them have it.
             }
-            return false;
+            return false; // Prevents early fulfillment.
         }
 
         [HarmonyPatch("SetNewProfitQuota")]
@@ -161,7 +159,7 @@ namespace LethalCompTime.Patches
             if (___quotaFulfilled == 0 && ConfigManager.RolloverFraction.Value > 0 && Plugin.currentOverfulfillment > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
             {
                 ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota);
-                Plugin.logger.LogInfo($"Client: New quota completion at: {Plugin.currentOverfulfillment}");
+                Plugin.logger.LogInfo($"Client: New quota completion at: {___quotaFulfilled}");
             }
             Plugin.currentOverfulfillment = 0;
         }
