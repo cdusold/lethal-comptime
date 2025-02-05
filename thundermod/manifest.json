@@ -1,6 +1,6 @@
 {
   "name": "LethalCompTime",
-  "version_number": "1.1.4",
+  "version_number": "1.1.5",
   "website_url": "https://github.com/cdusold/lethal-comptime",
   "description": "Allows for more controlled quota rollover. For if Quota Rollover starts feeling too easy.",
   "dependencies": [

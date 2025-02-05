@@ -396,3 +396,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Uninportant artifacts
+icon.xcf
+thundermod/LethalCompTime.1.1.4.zip
+thundermod/LethalCompTime.dll

@@ -1,3 +1,8 @@
+# 1.1.5
+
+- Bugfix on how I was pulling the furniture list for luck calculations.
+- Overtime override bugfix.
+
 # 1.1.4
 
 - Bugfix for quota rollovers to be more accurate (and thus predictible)
