@@ -1,3 +1,11 @@
+# 1.2.1
+
+- Variable reference related bugfix.
+
+# 1.2.0
+
+- Adding change for v70. Nothing major.
+
 # 1.1.5
 
 - Bugfix on how I was pulling the furniture list for luck calculations.

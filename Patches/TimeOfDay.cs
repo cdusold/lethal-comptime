@@ -94,7 +94,7 @@ namespace LethalCompTime.Patches
                 Plugin.logger.LogInfo($"Host: Got {___quotaFulfilled}");
                 if (TimeOfDay.Instance.IsServer)
                 {
-                    // DIRECTLY COPIED FROM DISASSEMBLY OF V69. WITH APPROPRIATE MODIFICATION. WILL NEED MANUAL UPDATES.
+                    // DIRECTLY COPIED FROM DISASSEMBLY OF V70. WITH APPROPRIATE MODIFICATION. WILL NEED MANUAL UPDATES.
                     ___timesFulfilledQuota++;
                     int num = ___quotaFulfilled - ___profitQuota;
                     float num2 = Mathf.Clamp(1f + (float)___timesFulfilledQuota * ((float)___timesFulfilledQuota / ___quotaVariables.increaseSteepness), 0f, 10000f);
@@ -115,11 +115,13 @@ namespace LethalCompTime.Patches
                     AutoParentToShip[] array = UnityEngine.Object.FindObjectsByType<AutoParentToShip>(FindObjectsSortMode.None);
                     for (int i = 0; i < array.Length; i++)
                     {
-                        if (array[i].unlockableID != -1)
+                        if (array[i].unlockableID != -1 && StartOfRound.Instance.unlockablesList.unlockables[array[i].unlockableID].spawnPrefab)
                         {
                             TimeOfDay.Instance.furniturePlacedAtQuotaStart.Add(array[i].unlockableID);
                         }
                     }
+
+                    TimeOfDay.Instance.hasShownAdThisQuota = false;
                     TimeOfDay.Instance.SyncNewProfitQuotaClientRpc(___profitQuota, overtimeBonus, ___timesFulfilledQuota);
                     return false; // Prevents original function call.
                 }
