@@ -1,3 +1,10 @@
+# 1.3.0
+
+- Added optional early quota turn in, as is in vanilla. Off by default.
+- Added debug messages and hid most of them behind a setting. Off by default.
+- Reworked logic to use the vanilla code, then modify the results before the RPC call.
+  - This should reduce work required on updates to the main game, and reduce incompatibilities with other mods, if they occur.
+
 # 1.2.1
 
 - Variable reference related bugfix.

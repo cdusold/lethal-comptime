@@ -14,22 +14,22 @@ namespace LethalCompTime.Configs
         public static ConfigEntry<int> ExampleQuota { get; private set; }
         public static ConfigEntry<int> ExampleRollover { get; private set; }
 
-        public static void Init(ConfigFile config)
+        public static void Init()
         {
             if (Instance == null)
             {
-                Instance = new LethalConfigManager(config);
+                Instance = new LethalConfigManager();
             }
         }
 
-        private LethalConfigManager(ConfigFile config)
+        private LethalConfigManager()
         {
             LethalConfig.LethalConfigManager.SetModDescription("Allows for more controlled quota rollover. For if Quota Rollover starts feeling too easy.");
 
             LethalConfig.LethalConfigManager.AddConfigItem(new GenericButtonConfigItem(
                 "Quick Settings",
                 "ClassicQR",
-                "Sets rollover to be fully held at week end and still give overtime bonus as well.",
+                "Sets rollover to be fully held at week end and still give overtime bonus as well. Quota periods will play out instead of redeeming early.",
                 "Classic Quota Rollover (Easiest)",
                 () =>
                 {
@@ -38,12 +38,13 @@ namespace LethalCompTime.Configs
                     ConfigManager.RolloverFraction.Value = 100;
                     ConfigManager.RolloverThreshold.Value = 100;
                     ConfigManager.RolloverPenalty.Value = 100;
+                    ConfigManager.EarlyFulfillment.Value = false;
                 }));
 
             LethalConfig.LethalConfigManager.AddConfigItem(new GenericButtonConfigItem(
                 "Quick Settings",
                 "QRBalanced",
-                "Sets rollover to be fully held at week end but doesn't double dip with the overtime bonus.",
+                "Sets rollover to be fully held at week end but doesn't double dip with the overtime bonus. Quotas will advance when fulfilled as in Vanilla.",
                 "Balanced Quota Rollover (Easy)",
                 () =>
                 {
@@ -52,12 +53,13 @@ namespace LethalCompTime.Configs
                     ConfigManager.RolloverFraction.Value = 100;
                     ConfigManager.RolloverThreshold.Value = 100;
                     ConfigManager.RolloverPenalty.Value = 100;
+                    ConfigManager.EarlyFulfillment.Value = true;
                 }));
 
             LethalConfig.LethalConfigManager.AddConfigItem(new GenericButtonConfigItem(
                 "Quick Settings",
                 "ScaledDown",
-                "Gradually reduces rollover out the more you turn in.",
+                "Gradually reduces rollover out the more you turn in. No early fulfillment.",
                 "Significant Rollover (Easy)",
                 () =>
                 {
@@ -66,12 +68,13 @@ namespace LethalCompTime.Configs
                     ConfigManager.RolloverFraction.Value = 100;
                     ConfigManager.RolloverThreshold.Value = 50;
                     ConfigManager.RolloverPenalty.Value = 75;
+                    ConfigManager.EarlyFulfillment.Value = false;
                 }));
 
             LethalConfig.LethalConfigManager.AddConfigItem(new GenericButtonConfigItem(
                 "Quick Settings",
                 "HardCapped",
-                "You can rollover exactly one quota's worth. No more.",
+                "You can rollover exactly one quota's worth. No more. Early fulfillment disabled.",
                 "Hard Capped (Easy)",
                 () =>
                 {
@@ -80,12 +83,13 @@ namespace LethalCompTime.Configs
                     ConfigManager.RolloverFraction.Value = 100;
                     ConfigManager.RolloverThreshold.Value = 100;
                     ConfigManager.RolloverPenalty.Value = 0;
+                    ConfigManager.EarlyFulfillment.Value = false;
                 }));
 
             LethalConfig.LethalConfigManager.AddConfigItem(new GenericButtonConfigItem(
                 "Quick Settings",
                 "Recommended",
-                "The more you turn in, the closer you'll get to the next quota, but you shouldn't be able to reach it.",
+                "The more you turn in, the closer you'll get to the next quota, but you shouldn't be able to reach it. Early fulfillment enabled, but only happens if you turn in early.",
                 "Recommended (Medium)",
                 () =>
                 {
@@ -94,12 +98,13 @@ namespace LethalCompTime.Configs
                     ConfigManager.RolloverFraction.Value = 100;
                     ConfigManager.RolloverThreshold.Value = 50;
                     ConfigManager.RolloverPenalty.Value = 50;
+                    ConfigManager.EarlyFulfillment.Value = true;
                 }));
 
             LethalConfig.LethalConfigManager.AddConfigItem(new GenericButtonConfigItem(
                 "Quick Settings",
                 "CompanyIssue",
-                "Rollover starts at 50% and decreases from there so that you can never reach a full quota.",
+                "Rollover starts at 50% and decreases from there so that you can never reach a full quota. Early fulfillment enabled anyway.",
                 "Company Issued Rollover (Hard)",
                 () =>
                 {
@@ -129,11 +134,17 @@ namespace LethalCompTime.Configs
             LethalConfig.LethalConfigManager.AddConfigItem(new IntSliderConfigItem(ConfigManager.RolloverPenalty, false));
             LethalConfig.LethalConfigManager.AddConfigItem(new EnumDropDownConfigItem<ConfigManager.PenaltyType>(ConfigManager.PenaltyUsed, false));
             LethalConfig.LethalConfigManager.AddConfigItem(new BoolCheckBoxConfigItem(ConfigManager.OvertimeOverride, false));
-            ExampleQuota = config.Bind("General", "ExampleQuota", 200, "Enter an example amount of quota to rollover (assuming a required 100 quota).");
+            LethalConfig.LethalConfigManager.AddConfigItem(new BoolCheckBoxConfigItem(ConfigManager.EarlyFulfillment, false));
+            ExampleQuota = ConfigManager.Config.Bind("General", "ExampleQuota", 200, "Enter an example amount of quota to rollover (assuming a required 100 quota).");
             var ExampleQuotaItem = new IntInputFieldConfigItem(ExampleQuota, false);
             LethalConfig.LethalConfigManager.AddConfigItem(ExampleQuotaItem);
 
-            ExampleRollover = config.Bind("General", "ExampleRollover", TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100), "After 100 quota is collected, this much will be rolled over (assuming the next quota is 100 for simplicity).");
+            ExampleRollover = ConfigManager.Config.Bind(
+                "General",
+                "ExampleRollover",
+                TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value - 100, 100),
+                "After 100 quota is collected, this much will be rolled over (assuming the next quota is 100 for simplicity)."
+            );
             var ExampleRolloverItem = new IntInputFieldConfigItem(ExampleRollover, new IntInputFieldOptions
             {
                 RequiresRestart = false,
@@ -143,36 +154,37 @@ namespace LethalCompTime.Configs
             LethalConfig.LethalConfigManager.AddConfigItem(ExampleRolloverItem);
             ExampleQuota.SettingChanged += (sender, args) =>
             {
-                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value - 100, 100);
                 ExampleRolloverItem.ApplyChanges();
             };
             ConfigManager.RolloverFraction.SettingChanged += (sender, args) =>
             {
-                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value - 100, 100);
                 ExampleRolloverItem.ApplyChanges();
             };
             ConfigManager.RolloverThreshold.SettingChanged += (sender, args) =>
             {
-                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value - 100, 100);
                 ExampleRolloverItem.ApplyChanges();
             };
             ConfigManager.RolloverPenalty.SettingChanged += (sender, args) =>
             {
-                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value - 100, 100);
                 ExampleRolloverItem.ApplyChanges();
             };
             ConfigManager.PenaltyUsed.SettingChanged += (sender, args) =>
             {
-                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value-100, 100);
+                ExampleRollover.Value = TimeOfDayPatch.CalculateQuotaRollover(ExampleQuota.Value - 100, 100);
                 ExampleRolloverItem.ApplyChanges();
             };
             LethalConfig.LethalConfigManager.AddConfigItem(new EnumDropDownConfigItem<ConfigManager.ColorOptions>(ConfigManager.ScreenColoration, false));
-            LethalConfig.LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(ConfigManager.ColorUnderFulfilled, false));
-            LethalConfig.LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(ConfigManager.ColorFulfilled, false));
-            LethalConfig.LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(ConfigManager.ColorOverFulfilled, false));
-            LethalConfig.LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(ConfigManager.TextColorOverrideUnderFulfilled, false));
-            LethalConfig.LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(ConfigManager.TextColorOverrideFulfilled, false));
-            LethalConfig.LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(ConfigManager.TextColorOverrideOverFulfilled, false));
+            LethalConfig.LethalConfigManager.AddConfigItem(new HexColorInputFieldConfigItem(ConfigManager.ColorUnderFulfilled, false));
+            LethalConfig.LethalConfigManager.AddConfigItem(new HexColorInputFieldConfigItem(ConfigManager.ColorFulfilled, false));
+            LethalConfig.LethalConfigManager.AddConfigItem(new HexColorInputFieldConfigItem(ConfigManager.ColorOverFulfilled, false));
+            LethalConfig.LethalConfigManager.AddConfigItem(new HexColorInputFieldConfigItem(ConfigManager.TextColorOverrideUnderFulfilled, false));
+            LethalConfig.LethalConfigManager.AddConfigItem(new HexColorInputFieldConfigItem(ConfigManager.TextColorOverrideFulfilled, false));
+            LethalConfig.LethalConfigManager.AddConfigItem(new HexColorInputFieldConfigItem(ConfigManager.TextColorOverrideOverFulfilled, false));
+            LethalConfig.LethalConfigManager.AddConfigItem(new BoolCheckBoxConfigItem(ConfigManager.EnableDebug, false));
         }
     }
 }

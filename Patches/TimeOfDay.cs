@@ -1,16 +1,22 @@
-﻿using HarmonyLib;
+﻿#define LETHALCOMPTIME_PRESERVE_VANILLA_QUOTA_LOGIC
+
+using HarmonyLib;
 using LethalCompTime.Configs;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using UnityEngine;
 namespace LethalCompTime.Patches
 {
     [HarmonyPatch(typeof(TimeOfDay))]
     internal class TimeOfDayPatch
     {
+        public static int currentOverfulfillment = 0;
+        public static int rolloverResult = 0;
+
         public static int CalculateQuotaRollover(int quotaFulfilled, int profitQuota)
         {
-            bool debug = false;
+            bool debug = ConfigManager.EnableDebug.Value;
             double value = quotaFulfilled;
             if (debug)
                 Plugin.logger.LogInfo($"Calc: {quotaFulfilled}/{profitQuota}");
@@ -78,6 +84,17 @@ namespace LethalCompTime.Patches
                 Plugin.logger.LogInfo($"Calc: v{value}");
             return (int)Math.Floor(value);
         }
+
+        #if LETHALCOMPTIME_PRESERVE_VANILLA_QUOTA_LOGIC
+        private static int CalculateOvertimeBonus(int quotaOverfulfilled, int daysUntilDeadline)
+        {
+            int overtimeBonus = quotaOverfulfilled / 5 + 15 * daysUntilDeadline;
+            if (ConfigManager.EnableDebug.Value)
+                Plugin.logger.LogInfo($"Overtime: q{quotaOverfulfilled}  d{daysUntilDeadline} o{overtimeBonus}");
+            return overtimeBonus;
+        }
+
+        #endif
         [HarmonyPatch("SetNewProfitQuota")]
         [HarmonyPrefix]
         [HarmonyAfter([])]
@@ -86,12 +103,22 @@ namespace LethalCompTime.Patches
                                                   ref int ___daysUntilDeadline)
         {
             Plugin.logger.LogInfo($"days: {TimeOfDay.Instance.daysUntilDeadline} time: {TimeOfDay.Instance.timeUntilDeadline} ID: {StartOfRound.Instance.currentLevelID}");
-            Plugin.currentOverfulfillment = 0;
-            if (TimeOfDay.Instance.daysUntilDeadline < 0)
+            currentOverfulfillment = 0;
+            if (TimeOfDay.Instance.daysUntilDeadline <= 0 || ConfigManager.EarlyFulfillment.Value)
             {
-                Plugin.currentOverfulfillment = ___quotaFulfilled - ___profitQuota;
-                Plugin.logger.LogInfo($"Host: Required {___profitQuota}");
-                Plugin.logger.LogInfo($"Host: Got {___quotaFulfilled}");
+                currentOverfulfillment = ___quotaFulfilled - ___profitQuota;
+                if (ConfigManager.EnableDebug.Value)
+                {
+                    Plugin.logger.LogInfo($"Host: Current overfulfillment: {currentOverfulfillment}");
+                    Plugin.logger.LogInfo($"Host: Required {___profitQuota}");
+                    Plugin.logger.LogInfo($"Host: Got {___quotaFulfilled}");
+                }
+                #if LETHALCOMPTIME_PRESERVE_VANILLA_QUOTA_LOGIC
+                if (ConfigManager.OvertimeOverride.Value)
+                {
+                    ___quotaFulfilled = ___profitQuota;
+                }
+                #else
                 if (TimeOfDay.Instance.IsServer)
                 {
                     // DIRECTLY COPIED FROM DISASSEMBLY OF V70. WITH APPROPRIATE MODIFICATION. WILL NEED MANUAL UPDATES.
@@ -106,7 +133,7 @@ namespace LethalCompTime.Patches
                     num2 = ___quotaVariables.baseIncrease * num2 * (___quotaVariables.randomizerCurve.Evaluate(num3) * ___quotaVariables.randomizerMultiplier + 1f);
                     Debug.Log($"Amount to increase quota:{num2}");
                     ___profitQuota = (int)Mathf.Clamp((float)___profitQuota + num2, 0f, 1E+09f);
-                    ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota); // THIS IS MODIFIED.
+                    ___quotaFulfilled = CalculateQuotaRollover(currentOverfulfillment, ___profitQuota); // THIS IS MODIFIED.
                     if (ConfigManager.OvertimeOverride.Value)    // THIS IS ADDED.
                         num -= Math.Min(___quotaFulfilled, num); // THIS IS ADDED.
                     ___timeUntilDeadline = ___totalTime * 4f;
@@ -125,45 +152,49 @@ namespace LethalCompTime.Patches
                     TimeOfDay.Instance.SyncNewProfitQuotaClientRpc(___profitQuota, overtimeBonus, ___timesFulfilledQuota);
                     return false; // Prevents original function call.
                 }
+                #endif
                 return true; // I dunno. If someone else is hooking in, let them have it.
             }
             return false; // Prevents early fulfillment.
         }
 
-        [HarmonyPatch("SetNewProfitQuota")]
-        [HarmonyPostfix]
-        [HarmonyBefore(new string[] { })]
-        private static void SetQuotaFulfilledHost(ref int ___quotaFulfilled, ref int ___profitQuota)
-        {
-            if (ConfigManager.RolloverFraction.Value > 0 && Plugin.currentOverfulfillment > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
-            {
-                ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota);
-            }
-            Plugin.logger.LogInfo($"Host: New quota completion at: {___quotaFulfilled}");
-        }
-
         [HarmonyPatch("SyncNewProfitQuotaClientRpc")]
         [HarmonyPrefix]
-        private static void GetNewQuotaFulfilledClient(ref int ___quotaFulfilled, ref int ___profitQuota)
+        private static void GetNewQuotaFulfilledClient(ref int ___quotaFulfilled, ref int ___profitQuota, ref int newProfitQuota, ref int overtimeBonus)
         {
-            if (Plugin.currentOverfulfillment == 0)
+            var debug = ConfigManager.EnableDebug.Value;
+            if (debug)
+                Plugin.logger.LogInfo($"ClientRpc: Next quota {newProfitQuota}");
+            if (currentOverfulfillment == 0)
             {
-                Plugin.currentOverfulfillment = ___quotaFulfilled - ___profitQuota;
+                currentOverfulfillment = ___quotaFulfilled - ___profitQuota;
+                if (debug)
+                {
+                    Plugin.logger.LogInfo($"ClientRpc: Required {___profitQuota}");
+                    Plugin.logger.LogInfo($"ClientRpc: Got {___quotaFulfilled}");
+                }
             }
-            Plugin.logger.LogInfo($"Client: Required {___profitQuota}");
-            Plugin.logger.LogInfo($"Client: Got {___quotaFulfilled}");
+            rolloverResult = CalculateQuotaRollover(currentOverfulfillment, newProfitQuota);
+            #if LETHALCOMPTIME_PRESERVE_VANILLA_QUOTA_LOGIC
+            if (ConfigManager.OvertimeOverride.Value)
+            {
+                overtimeBonus = CalculateOvertimeBonus(currentOverfulfillment - rolloverResult, TimeOfDay.Instance.daysUntilDeadline);
+            }
+            #endif
+            if (debug)
+                Plugin.logger.LogInfo($"ClientRpc: Overtime bonus {overtimeBonus}");
         }
 
         [HarmonyPatch("SyncNewProfitQuotaClientRpc")]
         [HarmonyPostfix]
         private static void SetNewQuotaFulfiledClient(ref int ___quotaFulfilled, ref int ___profitQuota)
         {
-            if (___quotaFulfilled == 0 && ConfigManager.RolloverFraction.Value > 0 && Plugin.currentOverfulfillment > 0 && TimeOfDay.Instance.daysUntilDeadline < 0)
+            if (___quotaFulfilled == 0 && ConfigManager.RolloverFraction.Value > 0 && currentOverfulfillment > 0)
             {
-                ___quotaFulfilled = CalculateQuotaRollover(Plugin.currentOverfulfillment, ___profitQuota);
-                Plugin.logger.LogInfo($"Client: New quota completion at: {___quotaFulfilled}");
+                ___quotaFulfilled = rolloverResult;
+                Plugin.logger.LogInfo($"New quota completion at: {___quotaFulfilled}");
             }
-            Plugin.currentOverfulfillment = 0;
+            currentOverfulfillment = 0;
         }
 
         [HarmonyPatch("UpdateProfitQuotaCurrentTime")]

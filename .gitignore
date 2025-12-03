@@ -399,5 +399,5 @@ FodyWeavers.xsd
 
 # Uninportant artifacts
 icon.xcf
-thundermod/LethalCompTime.1.1.4.zip
+thundermod/LethalCompTime*.zip
 thundermod/LethalCompTime.dll

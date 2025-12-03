@@ -18,8 +18,6 @@ namespace LethalCompTime
 
         public static ManualLogSource logger;
 
-        public static int currentOverfulfillment = 0;
-
         private void Awake()
         {
             if (Instance == null)
@@ -33,18 +31,21 @@ namespace LethalCompTime
 
             if (Chainloader.PluginInfos.ContainsKey("ainavt.lc.lethalconfig"))
             {
-                LethalConfigManager.Init(Config);
+                LethalConfigManager.Init();
             }
             if (Chainloader.PluginInfos.ContainsKey("BMX.LobbyCompatibility"))
             {
                 LobbyCompatibilityManager.Init();
             }
-            if (ConfigManager.RolloverFraction.Value != 0.0F)
-                Logger.LogInfo($"Rollover percentage set to {ConfigManager.RolloverFraction.Value}");
-            if (ConfigManager.RolloverThreshold.Value != 0.0F)
-                Logger.LogInfo($"Rollover max percentage set to {ConfigManager.RolloverThreshold.Value}");
-            if (ConfigManager.RolloverPenalty.Value != 0.0F)
-                Logger.LogInfo($"Rollover max percentage set to {ConfigManager.RolloverPenalty.Value}");
+            if (ConfigManager.EnableDebug.Value)
+            {
+                if (ConfigManager.RolloverFraction.Value != 0.0F)
+                    Logger.LogInfo($"Rollover percentage set to {ConfigManager.RolloverFraction.Value}");
+                if (ConfigManager.RolloverThreshold.Value != 0.0F)
+                    Logger.LogInfo($"Rollover max percentage set to {ConfigManager.RolloverThreshold.Value}");
+                if (ConfigManager.RolloverPenalty.Value != 0.0F)
+                    Logger.LogInfo($"Rollover max percentage set to {ConfigManager.RolloverPenalty.Value}");
+            }
             harmony.PatchAll(typeof(Plugin));
             harmony.PatchAll(typeof(TimeOfDayPatch));
         }

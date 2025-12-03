@@ -1,0 +1,1 @@
+copy .\bin\Debug\netstandard2.1\LethalCompTime.dll .\thundermod\

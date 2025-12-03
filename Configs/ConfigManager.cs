@@ -5,6 +5,7 @@ namespace LethalCompTime.Configs
     internal class ConfigManager
     {
         public static ConfigManager Instance { get; private set; }
+        public static ConfigFile Config { get; private set; }
 
         public static void Init(ConfigFile config)
         {
@@ -26,6 +27,7 @@ namespace LethalCompTime.Configs
 
         public static ConfigEntry<PenaltyType> PenaltyUsed { get; private set; }
         public static ConfigEntry<bool> OvertimeOverride { get; private set; }
+        public static ConfigEntry<bool> EarlyFulfillment { get; private set; }
 
         public enum ColorOptions
         {
@@ -41,9 +43,11 @@ namespace LethalCompTime.Configs
         public static ConfigEntry<string> TextColorOverrideOverFulfilled { get; private set; }
         public static ConfigEntry<string> TextColorOverrideFulfilled { get; private set; }
         public static ConfigEntry<string> TextColorOverrideUnderFulfilled { get; private set; }
+        public static ConfigEntry<bool> EnableDebug { get; private set; }
 
         private ConfigManager(ConfigFile config)
         {
+            Config = config;
             RolloverFraction = config.Bind(
                 "General",
                 "RolloverBasePercent",
@@ -73,6 +77,12 @@ namespace LethalCompTime.Configs
                 "RolloverOvertimeOverride",
                 true,
                 "Set this to false to allow full overtime bonus even with rollover. (Not Recommended.)"
+            );
+            EarlyFulfillment = config.Bind(
+                "General",
+                "RolloverEarlyFulfillment",
+                false,
+                "Set this to true if you would like to reenable early quota advancements such as in vanilla."
             );
             ScreenColoration = config.Bind(
                 "Visual",
@@ -115,6 +125,12 @@ namespace LethalCompTime.Configs
                 "RolloverTextColorOverrideOverFulfilled",
                 "#000000",
                 "The text color in Scene mode for when a penalty will be applied to the rollover."
+            );
+            EnableDebug = config.Bind(
+                "Debug",
+                "Enable debug mode",
+                false,
+                "If enabled, a substantial amount of debug logs will be made."
             );
         }
     }

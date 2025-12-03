@@ -16,9 +16,10 @@ Great- great asset to the company.
 - LobbyCompatibility integration
 - LethalConfig integration includes seven prebuilt settings available for quick access.
 - LethalConfig example fields allow to test settings.
+- Setting available to reenable early quota advancement as is in the vanilla game.
 
 ### Usage
-There are five main functional settings available:
+There are six main functional settings available:
 - RolloverBasePercent
     - controls how much quota is rolled over in general.
 - RolloverPenaltyThreshold
@@ -32,6 +33,9 @@ There are five main functional settings available:
 - RolloverOvertimeOverride
     - Removes the amount rolled over from the overtime bonus calculation, otherwise significantly beating quota early will cause many time the overtime bonus compounding overtime. It's easy to get immensely rich in standard QuotaRollover due to this oversight.
     - I do not recommend setting this to False unlesss you need a boost or just want to have fun. No shade either way, the game can be unfair sometimes. I added this so we all can play how we want.
+- RolloverEarlyFulfillment
+    - In vanilla, if you have the current quota when you set off from a planet, the quota advances. This can allow for bonus overtime, but can also make the quota climb extra fast.
+    - I only recommend setting this to True for veteran players. It's a fun twist on the rollover paradigm.
 
 There are seven visual settings available.
 They will not apply to the monitor during the challenge moon.
@@ -62,6 +66,7 @@ Installing LethalConfig provides vanilla compatible tools to mess with settings 
 
 - Vanilla offers no rollover, like the base game, and therefore is the hardest setting.
     - To enable this manually, set the base rollover to 0%.
+    - RolloverEarlyFulfillment to True
     - Coloration for when you have and have not met quota should still work if that interests you.
 - CompanyIssue is the default for the mod, halving initial rollover and diminishing rollover value such that you'll never reach a full week off.
     - To enable this manually set:
@@ -70,6 +75,7 @@ Installing LethalConfig provides vanilla compatible tools to mess with settings 
         - RolloverBasePercent to 50
         - RolloverPenaltyThreshold to 100
         - RolloverPenaltyPercent to 50
+        - RolloverEarlyFulfillment to True
 - Recommended is a setting that I recommend if you just want your first rollover settings to play with. It's not the default because it decreases the overtime bonus a bit more substantially for lower rollover values, which doesn't quite feel like it's the best for more experienced players. That being said, everyone is free to play how they want.
     - To enable this manually set:
         - RolloverOvertimeOverride to true
@@ -77,6 +83,7 @@ Installing LethalConfig provides vanilla compatible tools to mess with settings 
         - RolloverBasePercent to 100
         - RolloverPenaltyThreshold to 50
         - RolloverPenaltyPercent to 50
+        - RolloverEarlyFulfillment to True
 - HardCapped allows you to rollover 100% of the next quota worth maximum. After that the rest goes to overtime bonus and your credits on the ship only.
     - To enable this manually set:
         - RolloverOvertimeOverride to true
@@ -84,6 +91,7 @@ Installing LethalConfig provides vanilla compatible tools to mess with settings 
         - RolloverBasePercent to 100
         - RolloverPenaltyThreshold to 100
         - RolloverPenaltyPercent to 0
+        - RolloverEarlyFulfillment to False
 - ScaledDown provides a slightly more diminished return that is somewhere between Quota Rollover's original functionality and the defaults for this mod.
     - To enable this manually set:
         - RolloverOvertimeOverride to true
@@ -91,13 +99,15 @@ Installing LethalConfig provides vanilla compatible tools to mess with settings 
         - RolloverBasePercent to 100
         - RolloverPenaltyThreshold to 50
         - RolloverPenaltyPercent to 75
-- QRBalanced balances the original functionality of Quota Rollover by effectively disabling overtime bonus
+        - RolloverEarlyFulfillment to False
+- QRBalanced balances the original functionality of Quota Rollover by effectively disabling overtime bonus. Also enables early fulfillment as a additional balance against massive overfulfillments.
     - To enable this manually set:
         - RolloverOvertimeOverride to true
         - RolloverPenaltyType to Asymptotic
         - RolloverBasePercent to 100
         - RolloverPenaltyThreshold to 100
         - RolloverPenaltyPercent to 100
+        - RolloverEarlyFulfillment to True
 - ClassicQR imitates the Quota Rollover mod directly by double counting rollover towards overtime bonus.
     - To enable this manually set:
         - RolloverOvertimeOverride to false
@@ -105,3 +115,4 @@ Installing LethalConfig provides vanilla compatible tools to mess with settings 
         - RolloverBasePercent to 100
         - RolloverPenaltyThreshold to 100
         - RolloverPenaltyPercent to 100
+        - RolloverEarlyFulfillment to False
