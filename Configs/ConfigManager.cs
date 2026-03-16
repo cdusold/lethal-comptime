@@ -28,6 +28,14 @@ namespace LethalCompTime.Configs
         public static ConfigEntry<PenaltyType> PenaltyUsed { get; private set; }
         public static ConfigEntry<bool> OvertimeOverride { get; private set; }
         public static ConfigEntry<bool> EarlyFulfillment { get; private set; }
+        public static ConfigEntry<int> EarlyFulfillStartDay { get; private set; }
+        public static ConfigEntry<bool> ConfigQuota { get; private set; }
+        public static ConfigEntry<int> QuotaDaysPerCycle { get; private set; }
+        public static ConfigEntry<int> QuotaStartingQuota { get; private set; }
+        public static ConfigEntry<int> QuotaStartingCredits { get; private set; }
+        public static ConfigEntry<int> QuotaBaseIncrease { get; private set; }
+        public static ConfigEntry<float> QuotaRandomizerPortion { get; private set; }
+        public static ConfigEntry<float> QuotaInverseSteepness { get; private set; }
 
         public enum ColorOptions
         {
@@ -79,10 +87,58 @@ namespace LethalCompTime.Configs
                 "Set this to false to allow full overtime bonus even with rollover. (Not Recommended.)"
             );
             EarlyFulfillment = config.Bind(
-                "General",
+                "Early Fulfillment",
                 "RolloverEarlyFulfillment",
                 false,
                 "Set this to true if you would like to reenable early quota advancements such as in vanilla."
+            );
+            EarlyFulfillStartDay = config.Bind(
+                "Early Fulfillment",
+                "RolloverEarlyFulfillmentStartDay",
+                0,
+                "The day on which early fulfillment can start occurring, if enabled."
+            );
+            ConfigQuota = config.Bind(
+                "Quota Cycle Settings",
+                "ConfigurableQuota",
+                false,
+                "If enabled, the quota properties will be calculated from the following settings instead of external settings or the vanilla ones. (These will be disabled automatically if a mod on the README compatibility list is detected.)"
+            );
+            QuotaDaysPerCycle = config.Bind(
+                "Quota Cycle Settings",
+                "QuotaDaysPerCycle",
+                3,
+                "The number of days that make up a quota cycle. Vanilla is 3, with the fourth being a mandatory turn in day usually."
+            );
+            QuotaStartingQuota = config.Bind(
+                "Quota Cycle Settings",
+                "StartingQuota",
+                130,
+                "The quota for the first cycle."
+            );
+            QuotaStartingCredits = config.Bind(
+                "Quota Cycle Settings",
+                "StartingCredits",
+                60,
+                "The credits you start the game with."
+            );
+            QuotaBaseIncrease = config.Bind(
+                "Quota Cycle Settings",
+                "QuotaBaseIncrease",
+                100,
+                "The base increase in quota for each cycle. Details on the quota calculation is on the README (and the wiki for LC)."
+            );
+            QuotaRandomizerPortion = config.Bind(
+                "Quota Cycle Settings",
+                "QuotaRandomizerPortion",
+                1f,
+                "The ratio of the base increase that is added as a random amount to the quota increase each cycle. Details on the quota calculation is on the README (and the wiki for LC)."
+            );
+            QuotaInverseSteepness = config.Bind(
+                "Quota Cycle Settings",
+                "QuotaInverseSteepness",
+                16f,
+                "The inverse of the steepness of the increase of the quota. (The name in game is a bit) Higher values make the quota increase more linear, while lower values make it more exponential. Details on the quota calculation is on the README (and the wiki for LC)."
             );
             ScreenColoration = config.Bind(
                 "Visual",

@@ -17,6 +17,7 @@ namespace LethalCompTime
         private static Plugin Instance;
 
         public static ManualLogSource logger;
+        public static bool QuotaCompat { get; private set; }
 
         private void Awake()
         {
@@ -37,6 +38,7 @@ namespace LethalCompTime
             {
                 LobbyCompatibilityManager.Init();
             }
+            QuotaCompat = Chainloader.PluginInfos.ContainsKey("zeus1000.EasyQuota");
             if (ConfigManager.EnableDebug.Value)
             {
                 if (ConfigManager.RolloverFraction.Value != 0.0F)

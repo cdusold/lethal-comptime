@@ -104,7 +104,7 @@ namespace LethalCompTime.Patches
         {
             Plugin.logger.LogInfo($"days: {TimeOfDay.Instance.daysUntilDeadline} time: {TimeOfDay.Instance.timeUntilDeadline} ID: {StartOfRound.Instance.currentLevelID}");
             currentOverfulfillment = 0;
-            if (TimeOfDay.Instance.daysUntilDeadline <= 0 || ConfigManager.EarlyFulfillment.Value)
+            if (TimeOfDay.Instance.daysUntilDeadline <= 0 || (ConfigManager.EarlyFulfillment.Value && TimeOfDay.Instance.daysUntilDeadline <= ConfigManager.QuotaDaysPerCycle.Value - ConfigManager.EarlyFulfillStartDay.Value))
             {
                 currentOverfulfillment = ___quotaFulfilled - ___profitQuota;
                 if (ConfigManager.EnableDebug.Value)
@@ -260,6 +260,96 @@ namespace LethalCompTime.Patches
             {
                 Plugin.logger.LogError("Error in monitor update");
                 Plugin.logger.LogError(e.ToString());
+            }
+        }
+
+        [HarmonyPatch("Awake")]
+        [HarmonyPostfix]
+        private static void SetQuotaVariables(ref QuotaSettings ___quotaVariables)
+        {
+            if (ConfigManager.ConfigQuota.Value)
+            {
+                if (ConfigManager.EnableDebug.Value)
+                {
+                    Plugin.logger.LogInfo($"Quota variables:");
+                    Plugin.logger.LogInfo($"daysPerQuota: {ConfigManager.QuotaDaysPerCycle.Value}");
+                    Plugin.logger.LogInfo($"earlyFulfillStartDay: {ConfigManager.EarlyFulfillStartDay.Value}");
+                    Plugin.logger.LogInfo($"startingQuota: {ConfigManager.QuotaStartingQuota.Value}");
+                    Plugin.logger.LogInfo($"startingCredits: {ConfigManager.QuotaStartingCredits.Value}");
+                    Plugin.logger.LogInfo($"baseIncrease: {ConfigManager.QuotaBaseIncrease.Value}");
+                    Plugin.logger.LogInfo($"randomizerPortion: {ConfigManager.QuotaRandomizerPortion.Value}");
+                    Plugin.logger.LogInfo($"inverseSteepness: {ConfigManager.QuotaInverseSteepness.Value}");
+                    Plugin.logger.LogInfo($"In game values:");
+                    Plugin.logger.LogInfo($"daysPerQuota: {___quotaVariables.deadlineDaysAmount}");
+                    Plugin.logger.LogInfo($"startingQuota: {___quotaVariables.startingQuota}");
+                    Plugin.logger.LogInfo($"startingCredits: {___quotaVariables.startingCredits}");
+                    Plugin.logger.LogInfo($"baseIncrease: {___quotaVariables.baseIncrease}");
+                    Plugin.logger.LogInfo($"randomizerPortion: {___quotaVariables.randomizerMultiplier}");
+                    Plugin.logger.LogInfo($"inverseSteepness: {___quotaVariables.increaseSteepness}");
+                }
+                UpdateQuotaVariables();
+                if (ConfigManager.EnableDebug.Value)
+                {
+                    Plugin.logger.LogInfo("Set quota variables.");
+                }
+            }
+        }
+
+        public static void UpdateQuotaVariables()
+        {
+            if  (Plugin.QuotaCompat)
+                return;
+            var timeOfDay = TimeOfDay.Instance;
+            var quotaVariables = Traverse.Create(timeOfDay).Field("quotaVariables").GetValue<QuotaSettings>();
+            if (ConfigManager.ConfigQuota.Value)
+            {
+                if (ConfigManager.QuotaDaysPerCycle.Value != quotaVariables.deadlineDaysAmount)
+                {
+                    Plugin.logger.LogInfo($"Updating daysPerQuota from {quotaVariables.deadlineDaysAmount} to {ConfigManager.QuotaDaysPerCycle.Value}");
+                    quotaVariables.deadlineDaysAmount = ConfigManager.QuotaDaysPerCycle.Value;
+                }
+                if (ConfigManager.QuotaStartingQuota.Value != quotaVariables.startingQuota)
+                {
+                    Plugin.logger.LogInfo($"Updating startingQuota from {quotaVariables.startingQuota} to {ConfigManager.QuotaStartingQuota.Value}");
+                    quotaVariables.startingQuota = ConfigManager.QuotaStartingQuota.Value;
+                }
+                if (ConfigManager.QuotaStartingCredits.Value != quotaVariables.startingCredits)
+                {
+                    Plugin.logger.LogInfo($"Updating startingCredits from {quotaVariables.startingCredits} to {ConfigManager.QuotaStartingCredits.Value}");
+                    quotaVariables.startingCredits = ConfigManager.QuotaStartingCredits.Value;
+                }
+                if (ConfigManager.QuotaBaseIncrease.Value != quotaVariables.baseIncrease)
+                {
+                    Plugin.logger.LogInfo($"Updating baseIncrease from {quotaVariables.baseIncrease} to {ConfigManager.QuotaBaseIncrease.Value}");
+                    quotaVariables.baseIncrease = ConfigManager.QuotaBaseIncrease.Value;
+                }
+                if (ConfigManager.QuotaRandomizerPortion.Value != quotaVariables.randomizerMultiplier)
+                {
+                    Plugin.logger.LogInfo($"Updating randomizerPortion from {quotaVariables.randomizerMultiplier} to {ConfigManager.QuotaRandomizerPortion.Value}");
+                    quotaVariables.randomizerMultiplier = ConfigManager.QuotaRandomizerPortion.Value;
+                }
+                if (ConfigManager.QuotaInverseSteepness.Value != quotaVariables.increaseSteepness)
+                {
+                    Plugin.logger.LogInfo($"Updating randomizerPortion from {quotaVariables.increaseSteepness} to {ConfigManager.QuotaInverseSteepness.Value}");
+                    quotaVariables.increaseSteepness = ConfigManager.QuotaInverseSteepness.Value;
+                }
+                if (ConfigManager.EnableDebug.Value)
+                {
+                    Plugin.logger.LogInfo("Updated quota variables.");
+                }
+            }
+            else
+            { // TODO: Double check these variables
+                quotaVariables.deadlineDaysAmount = 3;
+                quotaVariables.startingQuota = 130;
+                quotaVariables.startingCredits = 60;
+                quotaVariables.baseIncrease = 100;
+                quotaVariables.randomizerMultiplier = 1f;
+                quotaVariables.increaseSteepness = 16f;
+                if (ConfigManager.EnableDebug.Value)
+                {
+                    Plugin.logger.LogInfo("Reset quota variables.");
+                }
             }
         }
     }

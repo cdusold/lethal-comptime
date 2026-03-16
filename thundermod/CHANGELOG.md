@@ -1,3 +1,16 @@
+# 1.3.1
+
+- Adding optional quota variable controls (Most will not occur if EasyQuota is installed, reach out if other mods conflict)
+  - daysPerQuota will set the vanilla variable QuotaSettings.deadlineDaysAmount
+  - daysUntilFulfillment will change the first day that the Early Fulfillment check happens (0 for vanilla)
+  - startingQuota will set the vanilla variable QuotaSettings.startingQuota
+  - startingCredits will set the vanilla variable QuotaSettings.startingCredits
+  - baseIncrease will set the vanilla variable QuotaSettings.baseIncrease
+  - randomizerPortion will set the vanilla variable QuotaSettings.randomizerMultiplier
+  - inverseSteepness will set the vanilla variable QuotaSettings.increaseSteepness (which actually is divided out of the exponential increase)
+- Adds a boolean setting that disables these that defaults to False
+- A note: Other than the days until fulfillment and the setting for early fulfillment on any planet, all of these are handled externally, so mods that directly change quota interactions will override them probably entirely. Depending on how they're implemented of course
+
 # 1.3.0
 
 - Added optional early quota turn in, as is in vanilla. Off by default.
